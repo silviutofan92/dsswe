@@ -6,5 +6,5 @@ setup(name='notademo',
       author='Silviu Tofan',
       author_email='silviu@databricks.com',
       url='www.databricks.com',
-      packages=['notpackage'],
+      packages=['mydspackage'],
       zip_safe=False)
