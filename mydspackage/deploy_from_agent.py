@@ -1,5 +1,6 @@
 import mlflow
-mlflow.set_tracking_uri("databricks")
+mlflow.set_tracking_uri("databricks://AZDO")
+
 
 def get_uri_and_model(model_name, stage):
     import mlflow.pyfunc
