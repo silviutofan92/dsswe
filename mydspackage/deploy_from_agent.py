@@ -127,7 +127,7 @@ def deploy_to_aks(workspace, model_image, aks_target, prod_webservice_name="dssw
     return prod_webservice
 
 
-version = "l1"
+version = "l2"
 
 #Get the Model from MLflow model registry
 model_uri, model = get_uri_and_model("a-wine-model", "Production")
