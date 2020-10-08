@@ -23,7 +23,7 @@ steps:
 # on a cluster.
 - script: |
     pip install pytest requests setuptools wheel
-    pip install -U databricks-connect==6.5.*
+    pip install -U databricks-connect==7.1.*
   displayName: 'Load Python Dependencies'
 
 # Use environment variables to pass Databricks login information to the Databricks Connect
@@ -42,7 +42,7 @@ steps:
   persistCredentials: true
   clean: true
 
-- script: git checkout release
+- script: git checkout main
   displayName: 'Get Latest Branch'
 
 #Test goes here
