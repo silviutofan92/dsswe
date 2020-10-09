@@ -1,6 +1,6 @@
 import mlflow
+import sklearn
 mlflow.set_tracking_uri("databricks://AZDO")
-
 
 def get_uri_and_model(model_name, stage):
     import mlflow.pyfunc
@@ -153,7 +153,6 @@ sample_json = df_to_score.to_json(orient="split")
 dev_scoring_uri = dev_webservice.scoring_uri
 dev_prediction = query_endpoint_example(scoring_uri=dev_scoring_uri, inputs=sample_json)
 print(dev_prediction)
-
 
 
 
