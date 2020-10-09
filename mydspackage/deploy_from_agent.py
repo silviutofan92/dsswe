@@ -28,6 +28,7 @@ def auth_to_aml(client_secret):
     from azureml.core import Workspace
     #Authenticate to Azure ML using a Service Principal
     print("Authenticating to AML...")
+    print(client_secret)
     svc_pr = ServicePrincipalAuthentication(
      tenant_id="9f37a392-f0ae-4280-9796-f1864a10effc",
      service_principal_id="c8023ad4-8d7f-4c06-adae-36054275b392",
