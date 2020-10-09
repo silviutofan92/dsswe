@@ -28,7 +28,7 @@ def auth_to_aml(client_secret):
     from azureml.core import Workspace
     #Authenticate to Azure ML using a Service Principal
     print("Authenticating to AML...")
-    print(client_secret)
+    #print(client_secret)
     svc_pr = ServicePrincipalAuthentication(
      tenant_id="9f37a392-f0ae-4280-9796-f1864a10effc",
      service_principal_id="c8023ad4-8d7f-4c06-adae-36054275b392",
@@ -139,10 +139,7 @@ df_to_score = fixed_data_test(model)
 
 #Authenticate to Azure ML using a Service Principal
 import sys
-print('sysargv')
-print(sys.argv)
-client_secret = sys.argv[0]
-print(client_secret)
+client_secret = sys.argv[1]
 workspace = auth_to_aml(client_secret)
 
 #Create a model image - this takes about 6 mins
