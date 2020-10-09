@@ -135,18 +135,6 @@ def deploy_to_aks(workspace, model_image, aks_target, prod_webservice_name="dssw
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
-
-# COMMAND ----------
-
-
-
-# COMMAND ----------
-
 ###My actual code
 
 version = "9"
@@ -190,7 +178,7 @@ sample_json = df_to_score.to_json(orient="split")
 prod_scoring_uri = prod_webservice.scoring_uri
 prod_service_key = prod_webservice.get_keys()[0] if len(prod_webservice.get_keys()) > 0 else None
 prod_prediction = query_endpoint_example(scoring_uri=prod_scoring_uri, service_key=prod_service_key, inputs=sample_json)
-print(dev_prediction)
+print(prod_prediction)
 
 # COMMAND ----------
 
