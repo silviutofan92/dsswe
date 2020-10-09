@@ -2,6 +2,7 @@ import mlflow
 import sklearn
 mlflow.set_tracking_uri("databricks://AZDO")
 
+
 def get_uri_and_model(model_name, stage):
     import mlflow.pyfunc
     # Get a model and a model_uri from model registry
@@ -28,7 +29,6 @@ def auth_to_aml(client_secret):
     from azureml.core import Workspace
     #Authenticate to Azure ML using a Service Principal
     print("Authenticating to AML...")
-    #print(client_secret)
     svc_pr = ServicePrincipalAuthentication(
      tenant_id="9f37a392-f0ae-4280-9796-f1864a10effc",
      service_principal_id="c8023ad4-8d7f-4c06-adae-36054275b392",
@@ -61,20 +61,6 @@ def build_aml_image(model_uri, workspace):
     return model_image, azure_model
 
 
-def deploy_to_aci(model_image, workspace, dev_webservice_name="dsswe-wine-devwebservice5"):
-    from azureml.core.webservice import AciWebservice, Webservice
-    # Deploy a model image to ACI
-    print("Deploying to ACI...")
-    # make sure this dev_webservice_name is unique and doesnt already exist, else need to replace
-    dev_webservice_deployment_config = AciWebservice.deploy_configuration()
-    dev_webservice = Webservice.deploy_from_image(name=dev_webservice_name, image=model_image,
-                                                  deployment_config=dev_webservice_deployment_config,
-                                                  workspace=workspace)
-    dev_webservice.wait_for_deployment()
-    print("Deployment to ACI successfully complete")
-    return dev_webservice
-
-
 def query_endpoint_example(scoring_uri, inputs, service_key=None):
     import requests
     import json
@@ -92,6 +78,42 @@ def query_endpoint_example(scoring_uri, inputs, service_key=None):
     print("Received response: {}".format(preds))
     return preds
 
+
+def create_aks(workspace, aks_cluster_name="dsswe-wineprod"):
+    from azureml.core.compute import AksCompute, ComputeTarget
+    # Create an AKS cluster
+    print("Creating AKS cluster...")
+    # Use the default configuration (you can also provide parameters to customize this)
+    prov_config = AksCompute.provisioning_configuration()
+    # Create the cluster
+    aks_target = ComputeTarget.create(workspace=workspace,
+                                      name=aks_cluster_name,
+                                      provisioning_configuration=prov_config)
+    # Wait for the create process to complete
+    aks_target.wait_for_completion(show_output=True)
+    print(aks_target.provisioning_state)
+    print(aks_target.provisioning_errors)
+    print("AKS cluster creation completed")
+    return aks_target
+
+
+def deploy_to_aks(workspace, model_image, aks_target, prod_webservice_name="dsswe-wprodm"):
+    from azureml.core.webservice import Webservice, AksWebservice
+    # Deploy a model image to AKS
+    print("Deploying to AKS...")
+    # Set configuration and service name
+    prod_webservice_deployment_config = AksWebservice.deploy_configuration()
+    # Deploy from image
+    prod_webservice = Webservice.deploy_from_image(workspace=workspace,
+                                                   name=prod_webservice_name,
+                                                   image=model_image,
+                                                   deployment_config=prod_webservice_deployment_config,
+                                                   deployment_target=aks_target)
+    # Wait for the deployment to complete
+    prod_webservice.wait_for_deployment(show_output=True)
+    print("Deployment to AKS completed sucessfully")
+    return prod_webservice
+
 import sys
 version = sys.argv[2]
 
@@ -102,28 +124,31 @@ model_uri, model = get_uri_and_model("a-wine-model", "Production")
 df_to_score = fixed_data_test(model)
 
 #Authenticate to Azure ML using a Service Principal
-import sys
 client_secret = sys.argv[1]
 workspace = auth_to_aml(client_secret)
 
 #Create a model image - this takes about 6 mins
 model_image, azure_model = build_aml_image(model_uri, workspace)
 
-#Deploy to ACI - this takes about 15 mins
-dev_webservice = deploy_to_aci(model_image, workspace, "dsswe-wine-devwebservice"+str(version))
+#Create AKS
+aks_target = create_aks(workspace, aks_cluster_name="dsswe-wineprod"+str(version))
 
-#Test ACI
-print("Testing ACI")
+#Use existing AKS
+###tofill
+
+#Deploy to AKS - this takes about 15 mins
+prod_webservice = deploy_to_aks(workspace, model_image, aks_target, prod_webservice_name="dsswe-wprodm"+str(version))
+
+#Test AKS
+print("Testing AKS")
 sample_json = df_to_score.to_json(orient="split")
-dev_scoring_uri = dev_webservice.scoring_uri
-dev_prediction = query_endpoint_example(scoring_uri=dev_scoring_uri, inputs=sample_json)
-print(dev_prediction)
+prod_scoring_uri = prod_webservice.scoring_uri
+prod_service_key = prod_webservice.get_keys()[0] if len(prod_webservice.get_keys()) > 0 else None
+prod_prediction = query_endpoint_example(scoring_uri=prod_scoring_uri, service_key=prod_service_key, inputs=sample_json)
+print(prod_prediction)
 
 
-
-print("Everything works on ACI! Ready for Prod")
-
-
+print("Everything works on AKS!")
 
 
 
