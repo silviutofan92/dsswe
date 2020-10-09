@@ -139,6 +139,8 @@ df_to_score = fixed_data_test(model)
 
 #Authenticate to Azure ML using a Service Principal
 import sys
+print('sysargv')
+print(sys.argv)
 client_secret = sys.argv[0]
 print(client_secret)
 workspace = auth_to_aml(client_secret)
