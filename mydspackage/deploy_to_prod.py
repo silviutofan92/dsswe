@@ -7,7 +7,7 @@ def get_uri_and_model(model_name, stage):
     import mlflow.pyfunc
     # Get a model and a model_uri from model registry
     model_uri = f"models:/{model_name}/{stage}"
-    model = mlflow.pyfunc.load_model(model_uri=model_uri)
+    model = mlflow.keras.load_model(model_uri=model_uri)
     return model_uri, model
 
 
@@ -49,9 +49,9 @@ def build_aml_image(model_uri, workspace):
     print("Creating model image...")
     model_image, azure_model = mlflow.azureml.build_image(model_uri=model_uri,
                                                           workspace=workspace,
-                                                          model_name="dsswe-wine-testmodel",
-                                                          image_name="dsswe-wine-testcontainerimage",
-                                                          description="Sklearn ElasticNet image for rating wines",
+                                                          model_name="dsswe-mnist-testmodel",
+                                                          image_name="dsswe-mnist-testcontainerimage",
+                                                          description="Keras for MNIST",
                                                           tags={
                                                               "stage": str("Prod")
                                                           },
@@ -79,7 +79,7 @@ def query_endpoint_example(scoring_uri, inputs, service_key=None):
     return preds
 
 
-def create_aks(workspace, aks_cluster_name="dsswe-wineprod"):
+def create_aks(workspace, aks_cluster_name="dsswe-mnistprod"):
     from azureml.core.compute import AksCompute, ComputeTarget
     # Create an AKS cluster
     print("Creating AKS cluster...")
@@ -97,7 +97,7 @@ def create_aks(workspace, aks_cluster_name="dsswe-wineprod"):
     return aks_target
 
 
-def deploy_to_aks(workspace, model_image, aks_target, prod_webservice_name="dsswe-wprodm"):
+def deploy_to_aks(workspace, model_image, aks_target, prod_webservice_name="dsswe-mprodm"):
     from azureml.core.webservice import Webservice, AksWebservice
     # Deploy a model image to AKS
     print("Deploying to AKS...")
@@ -118,10 +118,10 @@ import sys
 version = sys.argv[2]
 
 #Get the Model from MLflow model registry
-model_uri, model = get_uri_and_model("a-wine-model", "Production")
+model_uri, model = get_uri_and_model("a-silviu-mnist", "Production")
 
 #Read some dataset to score and test the model
-df_to_score = fixed_data_test(model)
+#df_to_score = fixed_data_test(model)
 
 #Authenticate to Azure ML using a Service Principal
 client_secret = sys.argv[1]
@@ -131,21 +131,21 @@ workspace = auth_to_aml(client_secret)
 model_image, azure_model = build_aml_image(model_uri, workspace)
 
 #Create AKS
-aks_target = create_aks(workspace, aks_cluster_name="dsswe-wineprod"+str(version))
+aks_target = create_aks(workspace, aks_cluster_name="dsswe-mnistprod"+str(version))
 
 #Use existing AKS
 ###tofill
 
 #Deploy to AKS - this takes about 15 mins
-prod_webservice = deploy_to_aks(workspace, model_image, aks_target, prod_webservice_name="dsswe-wprodm"+str(version))
+prod_webservice = deploy_to_aks(workspace, model_image, aks_target, prod_webservice_name="dsswe-mprodm"+str(version))
 
 #Test AKS
-print("Testing AKS")
-sample_json = df_to_score.to_json(orient="split")
-prod_scoring_uri = prod_webservice.scoring_uri
-prod_service_key = prod_webservice.get_keys()[0] if len(prod_webservice.get_keys()) > 0 else None
-prod_prediction = query_endpoint_example(scoring_uri=prod_scoring_uri, service_key=prod_service_key, inputs=sample_json)
-print(prod_prediction)
+#print("Testing AKS")
+#sample_json = df_to_score.to_json(orient="split")
+#prod_scoring_uri = prod_webservice.scoring_uri
+#prod_service_key = prod_webservice.get_keys()[0] if len(prod_webservice.get_keys()) > 0 else None
+#prod_prediction = query_endpoint_example(scoring_uri=prod_scoring_uri, service_key=prod_service_key, inputs=sample_json)
+#print(prod_prediction)
 
 
 print("Everything works on AKS!")
