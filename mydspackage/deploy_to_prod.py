@@ -79,7 +79,7 @@ def query_endpoint_example(scoring_uri, inputs, service_key=None):
     return preds
 
 
-def create_aks(workspace, aks_cluster_name="dsswe-mnistprod"):
+def create_aks(workspace, aks_cluster_name="dsswe-mnistp"):
     from azureml.core.compute import AksCompute, ComputeTarget
     # Create an AKS cluster
     print("Creating AKS cluster...")
@@ -131,13 +131,13 @@ workspace = auth_to_aml(client_secret)
 model_image, azure_model = build_aml_image(model_uri, workspace)
 
 #Create AKS
-aks_target = create_aks(workspace, aks_cluster_name="dsswe-mnistprod"+str(version))
+aks_target = create_aks(workspace, aks_cluster_name="dsswe-mnistp"+str(version))
 
 #Use existing AKS
 ###tofill
 
 #Deploy to AKS - this takes about 15 mins
-prod_webservice = deploy_to_aks(workspace, model_image, aks_target, prod_webservice_name="dsswe-mprodm"+str(version))
+prod_webservice = deploy_to_aks(workspace, model_image, aks_target, prod_webservice_name="dsswe-mpm"+str(version))
 
 #Test AKS
 #print("Testing AKS")
