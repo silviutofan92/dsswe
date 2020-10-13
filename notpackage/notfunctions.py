@@ -20,4 +20,5 @@ python_count = python_f(9999)
 print(spark_count)
 print(python_count)
 
+print("testing this during release")
 print("hi, i'm testing this during import")
