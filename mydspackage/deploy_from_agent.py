@@ -6,7 +6,7 @@ def get_uri_and_model(model_name, stage):
     import mlflow.pyfunc
     # Get a model and a model_uri from model registry
     model_uri = f"models:/{model_name}/{stage}"
-    model = mlflow.keras.load_model(model_uri=model_uri)
+    model = mlflow.pyfunc.load_model(model_uri=model_uri)
     return model_uri, model
 
 
@@ -43,17 +43,17 @@ def auth_to_aml(client_secret):
     return workspace
 
 
-def build_aml_image(model_uri, workspace):
+def build_aml_image(model_uri, workspace, model_name, image_name):
     import mlflow.azureml
     # Build an Azure ML model image
     print("Creating model image...")
     model_image, azure_model = mlflow.azureml.build_image(model_uri=model_uri,
                                                           workspace=workspace,
-                                                          model_name="dsswe-mnist-testmodel",
-                                                          image_name="dsswe-mnist-testcontainerimage",
-                                                          description="Keras for MNIST",
+                                                          model_name=model_name,
+                                                          image_name=image_name,
+                                                          description="Scikit for Wine Prediction",
                                                           tags={
-                                                              "stage": str("Prod")
+                                                              "stage": str("qa_for_prod")
                                                           },
                                                           synchronous=True)
     model_image.wait_for_creation(show_output=True)
@@ -61,7 +61,7 @@ def build_aml_image(model_uri, workspace):
     return model_image, azure_model
 
 
-def deploy_to_aci(model_image, workspace, dev_webservice_name="dsswe-mnist-devwebservice5"):
+def deploy_to_aci(model_image, workspace, dev_webservice_name):
     from azureml.core.webservice import AciWebservice, Webservice
     # Deploy a model image to ACI
     print("Deploying to ACI...")
@@ -99,7 +99,7 @@ version = sys.argv[2]
 model_uri, model = get_uri_and_model("a-silviu-mnist", "Production")
 
 #Read some dataset to score and test the model
-#df_to_score = fixed_data_test(model)
+df_to_score = fixed_data_test(model)
 
 #Authenticate to Azure ML using a Service Principal
 import sys
@@ -107,19 +107,20 @@ client_secret = sys.argv[1]
 workspace = auth_to_aml(client_secret)
 
 #Create a model image - this takes about 6 mins
-model_image, azure_model = build_aml_image(model_uri, workspace)
+model_name = "dsswe-skw-" + str(version)
+image_name = "dsswe-skwimg-" + str(version)
+model_image, azure_model = build_aml_image(model_uri, workspace, model_name, image_name)
 
 #Deploy to ACI - this takes about 15 mins
-dev_webservice = deploy_to_aci(model_image, workspace, "dsswe-mnist-devwebservice"+str(version))
+dev_webservice_name = "dsswe-skaci-" + str(version)
+dev_webservice = deploy_to_aci(model_image, workspace, dev_webservice_name)
 
 #Test ACI
-#print("Testing ACI")
-#sample_json = df_to_score.to_json(orient="split")
-#dev_scoring_uri = dev_webservice.scoring_uri
-#dev_prediction = query_endpoint_example(scoring_uri=dev_scoring_uri, inputs=sample_json)
-#print(dev_prediction)
-
-
+print("Testing ACI")
+sample_json = df_to_score.to_json(orient="split")
+dev_scoring_uri = dev_webservice.scoring_uri
+dev_prediction = query_endpoint_example(scoring_uri=dev_scoring_uri, inputs=sample_json)
+print(dev_prediction)
 
 print("Everything works on ACI! Ready for Prod")
 

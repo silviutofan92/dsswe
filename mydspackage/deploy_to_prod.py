@@ -7,7 +7,7 @@ def get_uri_and_model(model_name, stage):
     import mlflow.pyfunc
     # Get a model and a model_uri from model registry
     model_uri = f"models:/{model_name}/{stage}"
-    model = mlflow.keras.load_model(model_uri=model_uri)
+    model = mlflow.pyfunc.load_model(model_uri=model_uri)
     return model_uri, model
 
 
@@ -43,17 +43,17 @@ def auth_to_aml(client_secret):
     return workspace
 
 
-def build_aml_image(model_uri, workspace):
+def build_aml_image(model_uri, workspace, model_name, image_name):
     import mlflow.azureml
     # Build an Azure ML model image
     print("Creating model image...")
     model_image, azure_model = mlflow.azureml.build_image(model_uri=model_uri,
                                                           workspace=workspace,
-                                                          model_name="dsswe-mnist-testmodel",
-                                                          image_name="dsswe-mnist-testcontainerimage",
-                                                          description="Keras for MNIST",
+                                                          model_name=model_name,
+                                                          image_name=image_name,
+                                                          description="Scikit for Wine Prediction",
                                                           tags={
-                                                              "stage": str("Prod")
+                                                              "stage": str("prod")
                                                           },
                                                           synchronous=True)
     model_image.wait_for_creation(show_output=True)
@@ -79,7 +79,7 @@ def query_endpoint_example(scoring_uri, inputs, service_key=None):
     return preds
 
 
-def create_aks(workspace, aks_cluster_name="dsswe-mnistp"):
+def create_aks(workspace, aks_cluster_name):
     from azureml.core.compute import AksCompute, ComputeTarget
     # Create an AKS cluster
     print("Creating AKS cluster...")
@@ -121,31 +121,35 @@ version = sys.argv[2]
 model_uri, model = get_uri_and_model("a-silviu-mnist", "Production")
 
 #Read some dataset to score and test the model
-#df_to_score = fixed_data_test(model)
+df_to_score = fixed_data_test(model)
 
 #Authenticate to Azure ML using a Service Principal
 client_secret = sys.argv[1]
 workspace = auth_to_aml(client_secret)
 
 #Create a model image - this takes about 6 mins
-model_image, azure_model = build_aml_image(model_uri, workspace)
+model_name = "dsswe-skw-p-" + str(version)
+image_name = "dsswe-skwimg-p-" + str(version)
+model_image, azure_model = build_aml_image(model_uri, workspace, model_name, image_name)
 
 #Create AKS
-aks_target = create_aks(workspace, aks_cluster_name="dsswe-mnistp"+str(version))
+aks_cluster_name = "dsswe-skw-p-" + str(version)
+aks_target = create_aks(workspace, aks_cluster_name)
 
 #Use existing AKS
 ###tofill
 
 #Deploy to AKS - this takes about 15 mins
-prod_webservice = deploy_to_aks(workspace, model_image, aks_target, prod_webservice_name="dsswe-mpm"+str(version))
+prod_webservice_name = "dsswe-skaks-" + str(version)
+prod_webservice = deploy_to_aks(workspace, model_image, aks_target, prod_webservice_name=prod_webservice_name)
 
 #Test AKS
-#print("Testing AKS")
-#sample_json = df_to_score.to_json(orient="split")
-#prod_scoring_uri = prod_webservice.scoring_uri
-#prod_service_key = prod_webservice.get_keys()[0] if len(prod_webservice.get_keys()) > 0 else None
-#prod_prediction = query_endpoint_example(scoring_uri=prod_scoring_uri, service_key=prod_service_key, inputs=sample_json)
-#print(prod_prediction)
+print("Testing AKS")
+sample_json = df_to_score.to_json(orient="split")
+prod_scoring_uri = prod_webservice.scoring_uri
+prod_service_key = prod_webservice.get_keys()[0] if len(prod_webservice.get_keys()) > 0 else None
+prod_prediction = query_endpoint_example(scoring_uri=prod_scoring_uri, service_key=prod_service_key, inputs=sample_json)
+print(prod_prediction)
 
 
 print("Everything works on AKS!")
