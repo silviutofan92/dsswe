@@ -118,7 +118,7 @@ import sys
 version = sys.argv[2]
 
 #Get the Model from MLflow model registry
-model_uri, model = get_uri_and_model("a-silviu-mnist", "Production")
+model_uri, model = get_uri_and_model("a-wine-model", "Production")
 
 #Read some dataset to score and test the model
 df_to_score = fixed_data_test(model)
